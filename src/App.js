@@ -9,6 +9,7 @@ import Searchbar from './components/Searchbar';
 import ImageGallery from './components/ImageGallery';
 import Modal from './components/Modal';
 import LoaderSpin from './components/Loader';
+// import useScrollPosition from './hooks/useScrollPosition';
 
 export default function App() {
   const [value, setValue] = useState('');
@@ -18,16 +19,17 @@ export default function App() {
   const [showModal, setShowModal] = useState(false);
   const [largeImageURL, setLargeImageURL] = useState('');
 
+  // const scrollPosition = useScrollPosition();
+  // console.log('scrollPosition:', scrollPosition);
+
   useEffect(() => {
     if (!value) return;
     setStatus('pending');
-    console.log('page in useEffect:', page);
-    fetchImages(value)
+    fetchImages(value, page)
       .then(data => {
         if (data.length !== 0) {
-          setArr(data);
+          page === 1 ? setArr(data) : setArr(prev => [...prev, ...data]);
           setStatus('resolved');
-          setPage(prevPage => prevPage + 1);
           return;
         }
         toast.warn('Изображений с таким названием, к сожалению, нет');
@@ -36,15 +38,18 @@ export default function App() {
       .catch(err => {
         console.log(err);
         setStatus('error');
+      })
+      .finally(() => {
+        windowScroll();
       });
-  }, [value]);
+  }, [value, page]);
 
-  useEffect(() => {
+  const windowScroll = () => {
     window.scrollTo({
       top: document.documentElement.scrollHeight,
       behavior: 'smooth',
     });
-  }, [arr]);
+  };
 
   const toggleModal = largeImageURL => {
     setShowModal(!showModal);
@@ -57,17 +62,11 @@ export default function App() {
 
   const handleClick = () => {
     setPage(prevPage => prevPage + 1);
+    // setTimeout(() => {
+    //   windowScroll();
+    // }, 500);
+    console.log('arr in HandleClick:', arr);
     console.log('page in handleClick:', page);
-    fetchImages(value, page)
-      .then(data => {
-        setArr(prev => [...prev, ...data]);
-        setStatus('resolved');
-      })
-
-      .catch(err => {
-        console.log(err);
-        setStatus('error');
-      });
   };
 
   return (
@@ -95,11 +94,7 @@ export default function App() {
       )}
 
       {showModal && (
-        <Modal
-          value={value}
-          onClose={toggleModal}
-          largeImageURL={largeImageURL}
-        />
+        <Modal onClose={toggleModal} largeImageURL={largeImageURL} />
       )}
     </div>
   );
